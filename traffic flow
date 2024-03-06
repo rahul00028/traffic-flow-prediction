@@ -1,0 +1,41 @@
+# Load necessary libraries
+install.packages("tidyverse")
+install.packages("lubridate")
+
+library(tidyverse)
+library(lubridate)
+
+# Generate sample data (you would replace this with your own dataset)
+set.seed(123)
+n <- 100
+date_sequence <- seq(as.POSIXct("2024-01-01 00:00:00"), by = "15 min", length.out = n)
+traffic_flow <- rnorm(n, mean = 1000, sd = 200)
+df <- tibble(DateTime = date_sequence, TrafficFlow = traffic_flow)
+
+# Add features (e.g., hour of day, day of week, etc.)
+df <- df %>%
+  mutate(HourOfDay = hour(DateTime),
+         DayOfWeek = wday(DateTime, label = TRUE),
+         Weekend = ifelse(DayOfWeek %in% c("Sat", "Sun"), 1, 0))
+
+# Split data into train and test sets
+train_size <- 0.8
+train_indices <- sample(seq_len(nrow(df)), size = floor(train_size * nrow(df)))
+train_data <- df[train_indices, ]
+test_data <- df[-train_indices, ]
+
+# Train a linear regression model
+model <- lm(TrafficFlow ~ HourOfDay + DayOfWeek + Weekend, data = train_data)
+
+# Make predictions on test data
+predictions <- predict(model, newdata = test_data)
+
+# Evaluate the model
+error <- mean((predictions - test_data$TrafficFlow)^2)
+print(paste("Mean Squared Error:", error))
+
+# Plot actual vs predicted
+plot(test_data$DateTime, test_data$TrafficFlow, type = "l", col = "blue", ylim = c(0, max(test_data$TrafficFlow, na.rm = TRUE)), xlab = "Date Time", ylab = "Traffic Flow", main = "Actual vs Predicted Traffic Flow")
+lines(test_data$DateTime, predictions, col = "red")
+legend("topright", legend = c("Actual", "Predicted"), col = c("blue", "red"), lty = 1:1, cex = 0.8)
+
